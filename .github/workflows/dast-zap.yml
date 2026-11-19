@@ -1,0 +1,27 @@
+name: DAST - OWASP ZAP Baseline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run ZAP Baseline
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: "https://investigacion2-frontend.vercel.app"
+          allow_issue_writing: false
+          fail_action: false
+          cmd_options: "-m 1 -T 2"
+          artifact_name: "zap-report-frontend"
