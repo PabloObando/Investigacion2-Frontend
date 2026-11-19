@@ -1,0 +1,35 @@
+name: SAST - Semgrep
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run Semgrep
+        run: semgrep scan --config auto --json --output semgrep-results.json
+
+      - name: Upload Semgrep results
+        uses: actions/upload-artifact@v7
+        with:
+          name: semgrep-results-frontend
+          path: semgrep-results.json
+          if-no-files-found: error
