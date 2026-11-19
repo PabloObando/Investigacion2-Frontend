@@ -31,6 +31,9 @@ const initial: Filters = { q: '', year: '2025', province: '', crime: '', month: 
 const years = Array.from({ length: 12 }, (_, i) => 2026 - i)
 const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const source = 'https://datosabiertospj.poder-judicial.go.cr/dataset/estadisticas-policiales'
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, '') ||
+  (import.meta.env.DEV ? 'http://localhost:3000' : undefined)
 const number = new Intl.NumberFormat('es-CR')
 const formatDate = (date: string) => date.split('-').reverse().join('/')
 const title = (text?: string) =>
@@ -38,10 +41,8 @@ const title = (text?: string) =>
     ?.toLocaleLowerCase('es-CR')
     .replace(/(^|[\s/])\p{L}/gu, (char) => char.toLocaleUpperCase('es-CR')) || 'Sin especificar'
 
-function getApiOrigin() {
-  const base = import.meta.env.VITE_API_URL?.trim()
+function validateApiBaseUrl(base: string | undefined) {
   if (!base) {
-    if (import.meta.env.DEV) return ''
     throw new Error('Falta configurar VITE_API_URL con la URL pública del backend.')
   }
 
@@ -53,8 +54,8 @@ function getApiOrigin() {
     throw new Error(invalidOrigin)
   }
   if (
-    !['http:', 'https:'].includes(url.protocol) ||
-    !/^\/+$/u.test(url.pathname) ||
+    !/^https?:\/\//i.test(base) ||
+    url.pathname !== '/' ||
     url.search ||
     url.hash ||
     url.username ||
@@ -62,7 +63,6 @@ function getApiOrigin() {
   ) {
     throw new Error(invalidOrigin)
   }
-  return url.origin
 }
 
 type IconName =
@@ -233,7 +233,8 @@ function App() {
 
     async function search() {
       try {
-        const res = await fetch(`${getApiOrigin()}/api/oij/registros?${params}`, {
+        validateApiBaseUrl(API_BASE_URL)
+        const res = await fetch(`${API_BASE_URL}/api/oij/registros?${params}`, {
           signal: controller.signal,
         })
         if (!res.ok) {
