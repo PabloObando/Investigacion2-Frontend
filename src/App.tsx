@@ -38,6 +38,33 @@ const title = (text?: string) =>
     ?.toLocaleLowerCase('es-CR')
     .replace(/(^|[\s/])\p{L}/gu, (char) => char.toLocaleUpperCase('es-CR')) || 'Sin especificar'
 
+function getApiOrigin() {
+  const base = import.meta.env.VITE_API_URL?.trim()
+  if (!base) {
+    if (import.meta.env.DEV) return ''
+    throw new Error('Falta configurar VITE_API_URL con la URL pública del backend.')
+  }
+
+  const invalidOrigin = 'VITE_API_URL debe contener solo el origen público del backend.'
+  let url: URL
+  try {
+    url = new URL(base)
+  } catch {
+    throw new Error(invalidOrigin)
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    !/^\/+$/u.test(url.pathname) ||
+    url.search ||
+    url.hash ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error(invalidOrigin)
+  }
+  return url.origin
+}
+
 type IconName =
   'radar' | 'grid' | 'search' | 'chart' | 'list' | 'database' | 'pin' | 'layers' | 'calendar'
 function Icon({ name }: { name: IconName }) {
@@ -206,7 +233,9 @@ function App() {
 
     async function search() {
       try {
-        const res = await fetch(`/api/oij/registros?${params}`, { signal: controller.signal })
+        const res = await fetch(`${getApiOrigin()}/api/oij/registros?${params}`, {
+          signal: controller.signal,
+        })
         if (!res.ok) {
           const body = (await res.json().catch(() => null)) as { message?: unknown } | null
           throw new Error(
